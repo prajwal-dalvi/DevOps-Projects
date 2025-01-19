@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Variables
+VOLUME_ID="vol-xxxxxxxx"       # Replace with your EBS Volume ID
+S3_BUCKET="s3://your-bucket-name"  # Replace with your S3 bucket name after s3://<bucket-name>
+DESCRIPTION="Snapshot of $VOLUME_ID taken on $(date)"
+
+# This Block Create the snapshot
+SNAPSHOT_ID=$(aws ec2 create-snapshot --volume-id $VOLUME_ID --description "$DESCRIPTION" --query "SnapshotId" --output text)
+
+if [ -z "$SNAPSHOT_ID" ]; then
+    echo "Failed to create snapshot for volume $VOLUME_ID."
+    exit 1
+fi
+
+echo "Snapshot created: $SNAPSHOT_ID"
+
+# Wait for the snapshot to complete
+echo "Waiting for the snapshot to complete..."
+aws ec2 wait snapshot-completed --snapshot-ids $SNAPSHOT_ID
+
+if [ $? -ne 0 ]; then
+    echo "Snapshot $SNAPSHOT_ID did not complete successfully."
+    exit 1
+fi
+
+echo "Snapshot $SNAPSHOT_ID completed successfully."
+
+# This Block copy the snapshot to S3
+SNAPSHOT_FILE="${SNAPSHOT_ID}.json"
+aws ec2 describe-snapshots --snapshot-ids $SNAPSHOT_ID > $SNAPSHOT_FILE
+aws s3 cp $SNAPSHOT_FILE $S3_BUCKET
+
+if [ $? -eq 0 ]; then
+    echo "Snapshot metadata copied to S3: $S3_BUCKET/$SNAPSHOT_FILE"
+else
+    echo "Failed to copy snapshot metadata to S3."
+    exit 1
+fi
+
+# Clean up the local snapshot metadata file
+rm -f $SNAPSHOT_FILE
+
+echo "Snapshot process complete."
