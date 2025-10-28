@@ -67,7 +67,7 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     - name: Push Docker Image 
       run: | 
-        docker push prajwaldalvi59/boardgame:latest 
+        docker push adijaiswal/boardgame:latest 
     - name: Kubectl Action 
       uses: tale/kubectl-action@v1 
       with: 
