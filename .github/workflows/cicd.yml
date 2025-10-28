@@ -68,6 +68,7 @@ jobs:
     - name: Push Docker Image 
       run: | 
         docker push adijaiswal/boardgame:latest 
+        
     - name: Kubectl Action 
       uses: tale/kubectl-action@v1 
       with: 
